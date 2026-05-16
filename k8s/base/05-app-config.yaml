@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: app
+  labels:
+    app: kutt
+data:
+  # Tell Kutt to use Postgres instead of SQLite
+  DB_CLIENT: "pg"
+  DB_HOST: "postgres"
+  DB_PORT: "5432"
+  DB_SSL: "false"
+  # Enable Redis Cache
+  REDIS_ENABLED: "true"
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  # General App Settings
+  PORT: "3000"
+  DEFAULT_DOMAIN: "localhost"
