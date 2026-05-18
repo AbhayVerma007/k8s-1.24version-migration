@@ -25,9 +25,17 @@ module.exports = (fastify, logger, controller, helmet, fastifySwagger, cors) => 
         });
       }
 
-      // Access-Control-Allow-Origin: '*'
+      // Access-Control-Allow-Origin and preflight handling
       fastify.register(cors, {
-        origin: '*',
+        origin: true,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
+        exposedHeaders: ['Content-Length', 'Content-Type'],
+        credentials: true,
+      });
+
+      fastify.options('*', (request, reply) => {
+        reply.code(204).send();
       });
 
       // We don't need swagger in production

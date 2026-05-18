@@ -6,12 +6,12 @@ metadata:
   labels:
     app: smalllinks
 data:
-  BASE_URL: "http://smalllinks-frontend.app.svc.cluster.local"
+  BASE_URL: "a955a0b3420434f0dace5e1b62b99431-404093397.us-east-1.elb.amazonaws.com"
   PORT: "8201"
   SHORTENER_DEBUG: "true"
   SHORT_URL_LENGTH: "5"
   SHORT_KEY_GENERATION_RETRIES_COUNT: "5"
-  KAFKA_HOST: "kafka:9092"
+  KAFKA_HOST: "broker:9092"
   REDIS_HOST: "redis"
   REDIS_PORT: "6379"
   DB_HOST: "postgres"

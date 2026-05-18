@@ -37,7 +37,7 @@ spec:
     spec:
       containers:
         - name: smalllinks
-          image: "<ECR_REGISTRY>/smalllinks:latest"
+          image: "867490540548.dkr.ecr.us-east-1.amazonaws.com/smalllinks:latest"
           imagePullPolicy: Always
           ports:
             - containerPort: 8201
