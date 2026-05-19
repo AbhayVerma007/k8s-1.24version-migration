@@ -1,4 +1,5 @@
 const { BASE_URL, env } = require('../../config');
+const metrics = require('../metrics'); // ADDED: Import metrics
 
 module.exports = (fastify, logger, controller, helmet, fastifySwagger, cors) => {
   const routes = require('../routes')(controller);
@@ -64,6 +65,12 @@ module.exports = (fastify, logger, controller, helmet, fastifySwagger, cors) => 
       // register routes
       fastify.register(routes);
 
+      // ADDED: Expose the /metrics endpoint for Prometheus
+      fastify.get('/metrics', async (req, reply) => {
+        reply.header('Content-Type', metrics.client.register.contentType);
+        return metrics.client.register.metrics();
+      });
+
       let responseTime;
 
       // Lifecycle hooks to produce logs
@@ -97,11 +104,13 @@ module.exports = (fastify, logger, controller, helmet, fastifySwagger, cors) => 
       });
 
       fastify.addHook('onResponse', (req, reply, done) => {
+        const durationMs = new Date() - responseTime; // EXTRACTED: Calculated once to use for both logger and metrics
+
         logger.info({
           type: 'RESPONSE_LOG',
           'user-agent': req.headers['user-agent'],
           message: {
-            responseTime: new Date() - responseTime,
+            responseTime: durationMs, // UPDATED: Using the variable
             method: req.method,
             contentLength: req.headers['content-length'],
             requestId: req.requestId,
@@ -122,6 +131,15 @@ module.exports = (fastify, logger, controller, helmet, fastifySwagger, cors) => 
             },
           },
         });
+
+        // ADDED: Prometheus Request Tracking
+        const routeLabel = req.routerPath || req.raw.url || req.url;
+        
+        if (routeLabel !== '/metrics') {
+          metrics.httpRequestCount.labels(req.method, routeLabel, reply.statusCode).inc();
+          metrics.httpRequestDuration.labels(req.method, routeLabel, reply.statusCode).observe(durationMs / 1000);
+        }
+
         done();
       });
     },
