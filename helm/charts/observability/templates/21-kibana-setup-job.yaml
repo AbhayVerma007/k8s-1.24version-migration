@@ -24,14 +24,25 @@ spec:
             done
             
             echo "Kibana is up! Creating the logstash-* Data View..."
-            # The API requires the kbn-xsrf header for all state-changing requests
             curl -s -X POST "http://kibana.observability.svc.cluster.local:5601/api/data_views/data_view" \
               -H "kbn-xsrf: true" \
               -H "Content-Type: application/json" \
               -d '{
                     "data_view": {
                       "title": "logstash-*",
-                      "name": "Logstash Logs",
+                      "name": "Logstash Processed Logs",
+                      "timeFieldName": "@timestamp"
+                    }
+                  }'
+            
+            echo -e "\nCreating the filebeat-* Data View..."
+            curl -s -X POST "http://kibana.observability.svc.cluster.local:5601/api/data_views/data_view" \
+              -H "kbn-xsrf: true" \
+              -H "Content-Type: application/json" \
+              -d '{
+                    "data_view": {
+                      "title": "filebeat-*",
+                      "name": "Filebeat Raw Logs",
                       "timeFieldName": "@timestamp"
                     }
                   }'
