@@ -1,0 +1,2 @@
+# Default values for the Observability Stack
+# We are using static manifests for now, but Helm requires this file to exist.
