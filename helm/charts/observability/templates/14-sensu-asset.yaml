@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sensu-asset
+  namespace: observability
+binaryData:
+  check-es.tar.gz: {{ .Files.Get "files/check-es.tar.gz" | b64enc }}
