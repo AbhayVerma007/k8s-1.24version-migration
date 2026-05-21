@@ -4,7 +4,11 @@ metadata:
   name: smalllinks-monitor
   namespace: observability
   labels:
-    release: observability-stack   # <--- THIS IS THE MAGIC LABEL
+    # KEEP THESE (so you don't break existing management)
+    app.kubernetes.io/instance: observability-stack
+    app.kubernetes.io/managed-by: Helm
+    # ADD THIS (The key Prometheus Operator is looking for)
+    release: observability-stack
 spec:
   namespaceSelector:
     matchNames:
@@ -13,6 +17,6 @@ spec:
     matchLabels:
       app: smalllinks
   endpoints:
-    - targetPort: 8201
+    - port: metrics
       path: /metrics
       interval: 15s
