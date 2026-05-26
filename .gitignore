@@ -1,13 +1,21 @@
-# Local .terraform directories
-**/.terraform/*
-
-# .tfstate files
+# Terraform
+.terraform/
 *.tfstate
 *.tfstate.*
-
-# Crash log files
+terraform.tfstate.d/
 crash.log
 crash.*.log
-
-# Ignore any .tfvars files that are generated automatically
 *.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Secrets
+*-secrets.yaml
+*.pem
+
+# Misc
+get_helm.sh
+*.pdf
