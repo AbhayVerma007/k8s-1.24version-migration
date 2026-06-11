@@ -14,6 +14,11 @@ spec:
       parameters:
         - name: installCRDs
           value: "true"
+      values: |
+        serviceAccount:
+          create: true
+          annotations:
+            eks.amazonaws.com/role-arn: arn:aws:iam::867490540548:role/ExternalSecretsRole
   destination:
     server: https://kubernetes.default.svc
     namespace: external-secrets
