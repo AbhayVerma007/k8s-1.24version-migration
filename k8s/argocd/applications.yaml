@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'https://github.com/AbhayVerma007/CKAD-Practical-Training-on-EKS-4-Progressive-Phases.git'
+    repoURL: 'https://github.com/AbhayVerma007/3-Tier-Production-Architecture-on-AWS-EKS-GitOps-Full-Stack-Observability.git'
     targetRevision: HEAD
     path: helm/charts/app
   destination:
@@ -25,7 +25,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'https://github.com/AbhayVerma007/CKAD-Practical-Training-on-EKS-4-Progressive-Phases.git'
+    repoURL: 'https://github.com/AbhayVerma007/3-Tier-Production-Architecture-on-AWS-EKS-GitOps-Full-Stack-Observability.git'
     targetRevision: HEAD
     path: helm/charts/observability
   destination:
