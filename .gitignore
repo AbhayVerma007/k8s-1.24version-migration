@@ -1,24 +1,7 @@
-# Terraform
-*tfplan*
-*.tfplan
-*.plan
-.terraform/
-*.tfstate
-*.tfstate.*
-terraform.tfstate.d/
-crash.log
-crash.*.log
-*.tfvars
-*.tfvars.json
-override.tf
-override.tf.json
-*_override.tf
-*_override.tf.json
+# Ignore EVERYTHING
+/*
 
-# Secrets
-*-secrets.yaml
-*.pem
-
-# Misc
-get_helm.sh
-*.pdf
+# But ALLOW these specific directories
+!k8s/
+!helm/
+!.gitignore
