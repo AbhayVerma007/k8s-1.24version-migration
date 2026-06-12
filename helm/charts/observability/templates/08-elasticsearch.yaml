@@ -33,6 +33,16 @@ spec:
       labels:
         app: elasticsearch
     spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - logstash
+            topologyKey: kubernetes.io/hostname
       initContainers:
       - name: increase-vm-max-map-count
         image: busybox:1.35
@@ -95,8 +105,8 @@ spec:
           mountPath: /usr/share/elasticsearch/data
   
   volumeClaimTemplates:
-  - apiVersion: v1                  # <--- Add this back
-    kind: PersistentVolumeClaim     # <--- Add this back
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
     metadata:
       name: data
     spec:

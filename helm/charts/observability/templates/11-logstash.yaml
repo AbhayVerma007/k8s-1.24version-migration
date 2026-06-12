@@ -8,19 +8,14 @@ data:
     input {
       beats {
         port => 5000
-        # REMOVED: codec => "json" so it can process containerd raw text
       }
     }
-    
     filter {
-      # REMOVED: if [type] == "docker" wrapper
-      # Now it processes all incoming logs regardless of the container runtime
       grok {
         match => { "message" => "%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} %{GREEDYDATA:msg}" }
         tag_on_failure => [ "_grok_parse_failure" ]
       }
     }
-    
     output {
       elasticsearch {
         hosts => ["elasticsearch:9200"]
@@ -58,25 +53,32 @@ spec:
       labels:
         app: logstash
     spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - elasticsearch
+            topologyKey: kubernetes.io/hostname
       containers:
       - name: logstash
         image: docker.elastic.co/logstash/logstash:8.5.0
         ports:
         - containerPort: 5000
           name: beats
-        
         resources:
           requests:
             cpu: 200m
             memory: 512Mi
           limits:
             cpu: 500m
-            memory: 1Gi # Kept the upgraded memory limit to prevent OOMKilled
-        
+            memory: 1Gi
         volumeMounts:
         - name: config
           mountPath: /usr/share/logstash/pipeline
-        
         livenessProbe:
           exec:
             command:
@@ -85,7 +87,6 @@ spec:
               - http://localhost:9600/
           initialDelaySeconds: 60
           periodSeconds: 10
-        
         readinessProbe:
           exec:
             command:
@@ -94,7 +95,6 @@ spec:
               - http://localhost:9600/
           initialDelaySeconds: 30
           periodSeconds: 5
-      
       volumes:
       - name: config
         configMap:
