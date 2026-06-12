@@ -1,23 +1,4 @@
-# --- 1. External Secret for Slack Webhook ---
-apiVersion: external-secrets.io/v1beta1
-kind: ExternalSecret
-metadata:
-  name: sensu-slack-secret
-  namespace: observability
-spec:
-  refreshInterval: 1h
-  secretStoreRef:
-    name: aws-secretsmanager
-    kind: SecretStore
-  target:
-    name: sensu-slack-k8s-secret
-    creationPolicy: Owner
-  data:
-  - secretKey: SLACK_WEBHOOK_URL
-    remoteRef:
-      key: arn:aws:secretsmanager:us-east-1:867490540548:secret:sensu/slack-webhook-pklp1c
----
-# --- 2. Sensu Assets (ConfigMap) ---
+# --- 1. Sensu Assets (ConfigMap) ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -26,7 +7,7 @@ metadata:
 binaryData:
   check-es.tar.gz: {{ .Files.Get "files/check-es.tar.gz" | b64enc }}
 ---
-# --- 3. Check Template ---
+# --- 2. Check Template ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -70,7 +51,7 @@ data:
       handlers:
         - slack
 ---
-# --- 4. Setup Job ---
+# --- 3. Setup Job ---
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -89,7 +70,7 @@ spec:
           - name: SLACK_WEBHOOK_URL
             valueFrom:
               secretKeyRef:
-                name: sensu-slack-k8s-secret
+                name: sensu-slack-k8s-secret # This matches the secret you created manually
                 key: SLACK_WEBHOOK_URL
         command: ["/bin/sh", "-c"]
         args:
