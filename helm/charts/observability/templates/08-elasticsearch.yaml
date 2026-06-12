@@ -33,6 +33,9 @@ spec:
       labels:
         app: elasticsearch
     spec:
+      # THIS IS THE NEW ADDITION
+      nodeSelector:
+        kops.k8s.io/instancegroup: memory-workers
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
