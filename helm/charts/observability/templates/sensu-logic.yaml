@@ -1,0 +1,109 @@
+# --- 1. External Secret for Slack Webhook ---
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: sensu-slack-secret
+  namespace: observability
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: aws-secretsmanager
+    kind: SecretStore
+  target:
+    name: sensu-slack-k8s-secret
+    creationPolicy: Owner
+  data:
+  - secretKey: SLACK_WEBHOOK_URL
+    remoteRef:
+      key: arn:aws:secretsmanager:us-east-1:867490540548:secret:sensu/slack-webhook-pklp1c
+---
+# --- 2. Sensu Assets (ConfigMap) ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sensu-asset
+  namespace: observability
+binaryData:
+  check-es.tar.gz: {{ .Files.Get "files/check-es.tar.gz" | b64enc }}
+---
+# --- 3. Check Template ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sensu-custom-checks
+  namespace: observability
+data:
+  check.yaml.template: |
+    ---
+    type: Asset
+    api_version: core/v2
+    metadata:
+      name: sensu-slack-handler
+    spec:
+      url: https://assets.bonsai.sensu.io/a63e26462788e2e2264c7811dc7da1d5204481b0/sensu-slack-handler_1.4.0_linux_amd64.tar.gz
+      sha512: 5b6cb5fbfafe9ff2b6ffcd7d3d2eb1fbfab23a31c5ee2cb12d8a1dbfbabfbbd8e3d64483cb602b9ff9b8676235b8cb4e73fbcda98a3c428d02cd38228185da19
+    ---
+    type: Handler
+    api_version: core/v2
+    metadata:
+      name: slack
+    spec:
+      type: pipe
+      command: sensu-slack-handler --webhook-url ${SLACK_WEBHOOK_URL}
+      timeout: 10
+      runtime_assets:
+      - sensu-slack-handler
+    ---
+    type: CheckConfig
+    api_version: core/v2
+    metadata:
+      name: k8s-pod-status-check
+      namespace: default
+    spec:
+      command: >-
+        CRASHED=$(curl -s -k -H "Authorization: Bearer $(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" https://kubernetes.default.svc/api/v1/pods | grep '"phase":' | grep -v '"Running"' | grep -v '"Succeeded"' | grep -v '"Pending"' | wc -l);
+        if [ "$CRASHED" -gt 0 ]; then echo "CRITICAL: $CRASHED pods are currently down or failing!"; exit 2; else echo "OK: All pods are healthy."; exit 0; fi
+      subscriptions:
+        - kubernetes
+      publish: true
+      interval: 60
+      handlers:
+        - slack
+---
+# --- 4. Setup Job ---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sensu-configurator
+  namespace: observability
+  annotations:
+    argocd.argoproj.io/sync-wave: "5" 
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      containers:
+      - name: sensu-cli
+        image: sensu/sensu:latest
+        env:
+          - name: SLACK_WEBHOOK_URL
+            valueFrom:
+              secretKeyRef:
+                name: sensu-slack-k8s-secret
+                key: SLACK_WEBHOOK_URL
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            apk add --no-cache gettext
+            sleep 20
+            sensuctl configure -n --url http://sensu-backend.observability.svc.cluster.local:8080 --username admin --password "AdminPassword123!"
+            envsubst < /config/check.yaml.template > /config/check.yaml
+            sensuctl create -f /config/check.yaml
+        volumeMounts:
+        - name: config-volume
+          mountPath: /config
+      restartPolicy: OnFailure
+      volumes:
+      - name: config-volume
+        configMap:
+          name: sensu-custom-checks

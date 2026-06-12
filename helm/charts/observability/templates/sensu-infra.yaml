@@ -1,3 +1,33 @@
+# --- ServiceAccount & RBAC for Global Monitoring ---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sensu-agent-sa
+  namespace: observability
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: sensu-agent-role
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: sensu-agent-binding
+subjects:
+  - kind: ServiceAccount
+    name: sensu-agent-sa
+    namespace: observability
+roleRef:
+  kind: ClusterRole
+  name: sensu-agent-role
+  apiGroup: rbac.authorization.k8s.io
+
+# --- Asset Server ---
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -5,7 +35,7 @@ metadata:
   name: asset-server
   namespace: observability
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: asset-server
@@ -14,20 +44,28 @@ spec:
       labels:
         app: asset-server
     spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - asset-server
+              topologyKey: kubernetes.io/hostname
       containers:
         - name: nginx
           image: nginx:alpine
           ports:
             - containerPort: 80
-          volumeMounts:
-            - name: asset-volume
-              mountPath: /usr/share/nginx/html
       volumes:
         - name: asset-volume
           configMap:
             name: sensu-asset
             defaultMode: 0644
-
 ---
 apiVersion: v1
 kind: Service
@@ -41,6 +79,7 @@ spec:
     - port: 80
       targetPort: 80
 
+# --- Sensu Backend ---
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -57,6 +96,8 @@ spec:
       labels:
         app: sensu-backend
     spec:
+      nodeSelector:
+        kops.k8s.io/instancegroup: memory-workers
       containers:
         - name: sensu-backend
           image: sensu/sensu:latest
@@ -66,17 +107,6 @@ spec:
               value: "admin"
             - name: SENSU_BACKEND_CLUSTER_ADMIN_PASSWORD
               value: "AdminPassword123!"
-          ports:
-            - containerPort: 8080
-            - containerPort: 8081
-            - containerPort: 8082
-          resources:
-            requests:
-              cpu: 100m
-              memory: 256Mi
-            limits:
-              cpu: 500m
-              memory: 512Mi
           volumeMounts:
             - name: sensu-data
               mountPath: /var/lib/sensu/sensu-backend
@@ -84,7 +114,6 @@ spec:
         - name: sensu-data
           persistentVolumeClaim:
             claimName: sensu-backend-pvc
-
 ---
 apiVersion: v1
 kind: Service
@@ -105,6 +134,7 @@ spec:
       port: 8082
       targetPort: 8082
 
+# --- Sensu Agent (Globally Subscribed) ---
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -112,7 +142,7 @@ metadata:
   name: sensu-agent
   namespace: observability
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: sensu-agent
@@ -121,18 +151,24 @@ spec:
       labels:
         app: sensu-agent
     spec:
+      serviceAccountName: sensu-agent-sa
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - sensu-agent
+              topologyKey: kubernetes.io/hostname
       containers:
         - name: sensu-agent
           image: sensu/sensu:latest
-          command: ["sh", "-c", "apk add --no-cache curl && sensu-agent start --backend-url=ws://sensu-backend:8081 --subscriptions=elasticsearch"]
-          resources:
-            requests:
-              cpu: 50m
-              memory: 128Mi
-            limits:
-              cpu: 200m
-              memory: 256Mi
-
+          # Subscription is now 'kubernetes' for global cluster coverage
+          command: ["sh", "-c", "apk add --no-cache curl && sensu-agent start --backend-url=ws://sensu-backend:8081 --subscriptions=kubernetes"]
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
