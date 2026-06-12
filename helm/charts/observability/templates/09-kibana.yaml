@@ -43,7 +43,11 @@ spec:
           # ADD THIS NEW VARIABLE:
         - name: xpack.encryptedSavedObjects.encryptionKey
           value: "this-is-a-random-32-character-encryption-key-for-kibana"
-        
+        - name: SERVER_BASEPATH
+          value: "/kibana"
+        - name: SERVER_REWRITEBASEPATH
+          value: "true"
+
         resources:
           requests:
             cpu: 100m

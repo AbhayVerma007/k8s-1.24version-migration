@@ -1,2 +1,15 @@
 # Default values for the Observability Stack
-# We are using static manifests for now, but Helm requires this file to exist.
+# Overrides for the kube-prometheus-stack dependency to support Nginx sub-path routing
+
+kube-prometheus-stack:
+  grafana:
+    grafana.ini:
+      server:
+        # This tells Grafana it lives at /grafana/ instead of /
+        root_url: "%(protocol)s://%(domain)s:%(http_port)s/grafana/"
+        serve_from_sub_path: true
+
+  prometheus:
+    prometheusSpec:
+      # This tells Prometheus it lives at /prometheus/ instead of /
+      routePrefix: /prometheus/
