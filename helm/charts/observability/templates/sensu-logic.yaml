@@ -70,7 +70,7 @@ spec:
           - name: SLACK_WEBHOOK_URL
             valueFrom:
               secretKeyRef:
-                name: sensu-slack-k8s-secret # This matches the secret you created manually
+                name: sensu-slack-k8s-secret 
                 key: SLACK_WEBHOOK_URL
         command: ["/bin/sh", "-c"]
         args:
@@ -78,8 +78,11 @@ spec:
             apk add --no-cache gettext
             sleep 20
             sensuctl configure -n --url http://sensu-backend.observability.svc.cluster.local:8080 --username admin --password "AdminPassword123!"
-            envsubst < /config/check.yaml.template > /config/check.yaml
-            sensuctl create -f /config/check.yaml
+            
+            # THE FIX: Write the output to the writable /tmp directory
+            envsubst < /config/check.yaml.template > /tmp/check.yaml
+            sensuctl create -f /tmp/check.yaml
+            
         volumeMounts:
         - name: config-volume
           mountPath: /config
