@@ -58,14 +58,14 @@ spec:
         
         livenessProbe:
           httpGet:
-            path: /app/kibana
+            path: /kibana/app/kibana
             port: 5601
           initialDelaySeconds: 30
           periodSeconds: 10
         
         readinessProbe:
           httpGet:
-            path: /app/kibana
+            path: /kibana/app/kibana
             port: 5601
           initialDelaySeconds: 15
           periodSeconds: 5
